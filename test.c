@@ -3,10 +3,8 @@
  */
 #include <stdio.h>   // printf
 #include <stdlib.h>  // strtod
-#define USE_STRTOLL_FOR_PREFIX
-#define ERRNO_AT_DBL_MIN_AND_MAX
 #include "strtod.c"  // c8_strtod
-#define testCount 45
+#define testCount 46
 char *values[testCount] = {
     /* 0*/
     "17976931348623158000000000000000000000000000000000000000000000000000000000"
@@ -92,6 +90,9 @@ char *values[testCount] = {
     /*42*/ "0o12345678",
     /*43*/ "0o",
     /*44*/ "-0o",
+		/*45*/ "03658250918301846183495050283654819204851654321456789054725438799163764573898099103658250\
+						1830184618349505028365481920485165432145678905472543879916376457389809910365825091830184618349\
+						50502836548192048516543214567890547254387991637645738980991"
 };
 
 #include <string.h>  // strcmp
@@ -104,7 +105,7 @@ void consistencyCheck() {
         double d1 = strtod(values[i], &str1);
         err1 = errno;
         errno = 0;
-        double d2 = c8_strToD(values[i], &str2);
+        double d2 = custom_strtod(values[i], &str2);
         err2 = errno;
         if (d1 != d2 || strcmp(str1, str2) || err1 != err2) {
             printf(
@@ -167,7 +168,7 @@ void benchmark() {
 
     getTime();
     for (int i = 0; i < testCount; ++i) {
-        returns2[i] = c8_strToD(values[i], NULL);
+        returns2[i] = custom_strtod(values[i], NULL);
     }
     int newStrToD = getTime();
     printf(

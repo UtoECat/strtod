@@ -1,21 +1,39 @@
 // Author: CrazyInfin8
-// license: unlicense (https://unlicense.org/)
+// Modified a bit by utoecat to fit for luau purposes
+/*
+This is free and unencumbered software released into the public domain.
+
+Anyone is free to copy, modify, publish, use, compile, sell, or
+distribute this software, either in source code form or as a compiled
+binary, for any purpose, commercial or non-commercial, and by any
+means.
+
+In jurisdictions that recognize copyright laws, the author or authors
+of this software dedicate any and all copyright interest in the
+software to the public domain. We make this dedication for the benefit
+of the public at large and to the detriment of our heirs and
+successors. We intend this dedication to be an overt act of
+relinquishment in perpetuity of all present and future rights to this
+software under copyright law.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+OTHER DEALINGS IN THE SOFTWARE.
+
+For more information, please refer to <http://unlicense.org/>
+*/
 
 #include <errno.h>    // errno, ERRANGE
 #include <limits.h>   // INT_MIN, INT_MAX
 #include <math.h>     // powl, INFINITY
 #include <stdbool.h>  // bool, true, false
-#ifdef USE_STRTOLL_FOR_PREFIX
-#ifdef USE_DEFAULT_STRTOLL
-#include <stdlib.h>  // strtoll
-#else
-#include "../strtoll/strtoll.c"  // c8_strToLL // change to path of c8_strtoll
-#endif
-#endif
-#ifdef ERRNO_AT_DBL_MIN_AND_MAX
 #include <float.h> // DBL_MAX, DBL_MIN
-#endif
-static double c8_strToD(char *str, char **v) {
+
+static double custom_strtod(char *str, char **v) {
     long long num = 0;
     int digits = 0;
     char *start = str;
@@ -27,22 +45,6 @@ static double c8_strToD(char *str, char **v) {
         ++str;
     } else if (c == '+')
         ++str;
-#ifdef USE_STRTOLL_FOR_PREFIX
-    if (*str == '0') {
-        switch (*(str + 1)) {
-            case 'x':
-            case 'o':
-            case 'b':
-#ifdef USE_DEFAULT_STRTOLL
-                num = strtoll(str, &str, 0);
-#else
-                num = c8_strToLL(start, &str, 0);
-#endif
-                if (v) *v = str;
-                return (double)num * (double)(neg ? -1 : 1);
-        }
-    }
-#endif
     for (;;) {
         c = *str++;
         if (c >= '0' && c <= '9') {
@@ -53,9 +55,7 @@ static double c8_strToD(char *str, char **v) {
                 overflow = true;
             } else
                 ++e;
-        } else if (c == '_') {
-        } else
-            break;
+        } else break;
     }
     if (c == '.')
         for (;;) {
@@ -69,9 +69,7 @@ static double c8_strToD(char *str, char **v) {
                     else
                         --e;
                 }
-            } else if (c == '_') {
-            } else
-                break;
+            } else break;
         }
     if (c == 'e' || c == 'E') {
         int e2 = 0;
@@ -134,12 +132,7 @@ skip:
     }
     // use long doubles to preserve accuracy
     double ret = (double)((long double)(num)*powl(10, e));
-#ifdef ERRNO_AT_DBL_MIN_AND_MAX
     if(ret > DBL_MAX) errno = ERANGE;
     else if (ret < DBL_MIN && num != 0) errno = ERANGE;
-#else
-    if (ret == INFINITY) errno = ERANGE;
-    else if (ret == 0 && num != 0) errno = ERANGE;
-#endif
     return ret * (neg ? -1 : 1);
 }
